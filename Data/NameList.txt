@@ -1,0 +1,9 @@
+Car/
+Closet/
+Cloud/ 
+Grass/
+Mush/
+Rock/
+Shoes/
+WaterAnimal/
+ 
