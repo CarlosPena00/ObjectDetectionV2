@@ -76,11 +76,11 @@ class F2D:
             rows = src.shape[0]
             cols = src.shape[1]
             if rows > 1 and cols > 1:
-                if self.blur is True:
+                if self.blur:
                     src = cv2.pyrUp(cv2.pyrDown(src))
                     rows = src.shape[0]
                     cols = src.shape[1]
-                if self.cut is True:
+                if self.cut:
                     maxRows = rows / IMSIZE
                     maxCols = cols / IMSIZE
                 else:
@@ -116,5 +116,5 @@ class F2D:
 
 
 if __name__ == "__main__":
-    f2d = F2D()
+    f2d = F2D(positive=False, argMin=11)
     f2d.transform()
