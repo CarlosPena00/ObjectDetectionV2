@@ -7,7 +7,9 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import sys
 sys.path.insert(0, 'Descriptors/hog')
+sys.path.insert(0, 'utils')
 from hog import HOG
+from utils import Utils
 import time
 IMSIZE = 76
 # Constant
@@ -18,6 +20,7 @@ SAVE = "./Descriptors/Save/"
 SAMPLE_IMAGES = "./SampleImages/"
 RESULT = "./Results/"
 UTILS = "./utils/"
+DATA_URL = "./Data/"
 NEGATIVE_FOLDER = "negativeFolder.csv"
 POSITIVE_FOLDER = "positiveFolder.csv"
 HISTOGRAM = "Histogram/"
@@ -40,10 +43,12 @@ class F2D:
 
     def __init__(self, positive=True, argMin=0, argMax=100, blur=False, openCV=True):
         if positive is True:
-            self.folder = POSITIVE_FOLDER
+            self.csvFolder = POSITIVE_FOLDER
+            self.folder = POSITIVE
         else:
-            self.folder = NEGATIVE_FOLDER
-        data = pd.read_csv(UTILS + self.folder)
+            self.csvFolder = NEGATIVE_FOLDER
+            self.folder = NEGATIVE
+        data = pd.read_csv(UTILS + self.csvFolder)
         self.listOfFolder = data.iloc[:, :].values
         self.argMin = max(argMin, 0)
         self.argMax = min(argMax, self.listOfFolder.shape[0])
@@ -57,16 +62,16 @@ class F2D:
             self.typeOfFolder = "." + self.listOfFolder[i][1]
             self.cut = self.listOfFolder[i][2]
             self.numberOfImgs = self.listOfFolder[i][3]
-            self.saveFile = self.listOfFolder[:-1] + ".csv"
+            self.saveFile = self.folderName[:-1] + CSV
             print "----- Start Folder: " + self.folderName + " -----"
             time.sleep(1)
-            self.__fold2Hog(self)
+            self.__fold2Hog()
 
     def __fold2Hog(self):
         lista = np.empty([1, NUMBER_OF_DIMS])
         # globalHist = np.zeros(shape=9, dtype=np.float128);
         for f in tqdm(range(1, self.numberOfImgs)):
-            src = cv2.imread(self.folder + self.folderName +
+            src = cv2.imread(DATA_URL + self.folderName +
                              str(f) + self.typeOfFolder)
             rows = src.shape[0]
             cols = src.shape[1]
@@ -84,7 +89,7 @@ class F2D:
                 for j in range(0, maxRows):
                     for i in range(0, maxCols):
                         if self.cut is True:
-                            roi, xMin, xMax, yMin, yMax = Utils.getROI(
+                            roi, xMin, xMax, yMin, yMax = Utils.getRoi(
                                 src, j, i, px=IMSIZE)
                         else:
                             roi = src
@@ -106,5 +111,10 @@ class F2D:
         # globalHistMean = globalHist/float(f)
         # Save plot of Histogram
         X = np.delete(lista, (0), axis=0)
-        np.savetxt(HOG_URL + self.folder + self.folderName,
+        np.savetxt(HOG_URL + self.folder + self.folderName[:-1] + CSV,
                    X, delimiter=',', fmt="%f")
+
+
+if __name__ == "__main__":
+    f2d = F2D()
+    f2d.transform()
