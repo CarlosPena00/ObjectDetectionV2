@@ -7,7 +7,9 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import sys
 sys.path.insert(0, 'Descriptors/hog')
+sys.path.insert(0, 'Descriptors/lbp')
 sys.path.insert(0, 'utils')
+from lbp import LBP
 from hog import HOG
 from utils import Utils
 import time
@@ -55,7 +57,8 @@ class F2D:
         self.blur = blur
         self.openCV = openCV
 
-    def transform(self):
+    def transform(self, descriptor='HOG'):
+        self.descriptor = descriptor
         self.hog = HOG()
         for i in range(self.argMin, self.argMax):
             self.folderName = self.listOfFolder[i][0]
@@ -116,5 +119,5 @@ class F2D:
 
 
 if __name__ == "__main__":
-    f2d = F2D(positive=False, argMin=11)
+    f2d = F2D(positive=True, argMin=3)
     f2d.transform()

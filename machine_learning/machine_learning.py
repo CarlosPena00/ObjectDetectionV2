@@ -14,7 +14,7 @@ class MachineLearning:
      'Common base class for all ML methods'
      def __init__(self,X,y):
          self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
-                 X, y, test_size=0.30, random_state=0)
+                 X, y, test_size=0.20, random_state=0)
          self.sc_X = StandardScaler()
          self.X_train = self.sc_X.fit_transform(self.X_train)
          self.X_test = self.sc_X.transform(self.X_test)

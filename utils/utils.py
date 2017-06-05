@@ -69,11 +69,12 @@ class Utils:
         yMax = yMin + px
         return src[xMin:xMax, yMin:yMax, :]
     
-    def faceDetect(self, classifier, stdScaler, imgUrl, upSample=True):
+    def faceDetect(self, classifier, stdScaler, imgUrl, upSample=True, pyr=False):
         'A face detector'
         self.classifier = classifier
         self.stdScaler = stdScaler
         self.url = imgUrl
+        self.pyr = pyr
         src = cv2.imread(SAMPLE_IMAGES + imgUrl)
         rows, cols = src.shape[0],src.shape[1]
         if upSample:  
@@ -95,7 +96,8 @@ class Utils:
         
     def __DetectEachBlock(self):
         iterator = 0
-        while self.src.shape[0] > 64 and self.src.shape[1] > 64:
+        enable = True
+        while self.src.shape[0] > 64 and self.src.shape[1] > 64 and enable:
             iterator += 1
             for i in tqdm(range(0, self.maxRows)):
                 for j in range(0, self.maxCols):
@@ -120,7 +122,8 @@ class Utils:
             rows, cols = self.src.shape[0],self.src.shape[1]
             self.maxRows = rows/IMSIZE
             self.maxCols = cols/IMSIZE
-            
+            if not self.pyr:
+                enable = False
         boxes = self.__No_MaxSuppresion(np.asarray(self.rects), 0.3)
         for bx in boxes:
             xMin = bx[0]
