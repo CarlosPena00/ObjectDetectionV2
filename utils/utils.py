@@ -69,11 +69,12 @@ class Utils:
         yMax = yMin + px
         return src[xMin:xMax, yMin:yMax, :]
     
-    def faceDetect(self, classifier, stdScaler, imgUrl, upSample=False):
+    def faceDetect(self, classifier, stdScaler, imgUrl, upSample=True):
         'A face detector'
         self.classifier = classifier
         self.stdScaler = stdScaler
-        src = cv2.imread(imgUrl)
+        self.url = imgUrl
+        src = cv2.imread(SAMPLE_IMAGES + imgUrl)
         rows, cols = src.shape[0],src.shape[1]
         if upSample:  
             rows = int(rows * 1.5)
@@ -93,27 +94,34 @@ class Utils:
         
         
     def __DetectEachBlock(self):
-        for i in tqdm(range(0, self.maxRows)):
-            for j in range(0, self.maxCols):
-                for dX in range(0, 3):
-                    for dY in range(0, 3):
-                        roi, xMin, xMax, yMin, yMax = self.getRoi(self.src, i, j, px=IMSIZE, dy=dX*20, dx=dY*20)
-                        rows, cols = roi.shape[0], roi.shape[1]
-                        if rows == 0 or cols == 0:
-                            break
-                        if rows != IMSIZE or cols != IMSIZE:
-                            roi = cv2.resize(roi, (IMSIZE, IMSIZE))
-                            rows, cols = roi.shape[0], roi.shape[1]    
-                        histG = self.HOG.getOpenCV(roi)
-                        histGE = self.stdScaler.transform(histG.reshape(1, -1))
-                        if self.classifier.predict(histGE):
-                            #cv2.rectangle(self.srcPrint, (yMin, xMin), (yMax, xMax), (0, 0, 255))
-                            self.recs_aux = np.array([xMin, yMin, xMax, yMax]) 
-                            self.rects.append(self.recs_aux)
-                            #plt.imshow(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB))
-                            cv2.imwrite("Img/"+"ID"+str(j*1000)+str(i*100)+str(dY*10)+str(dX)+"Foi"+".jpg",roi)
-                            boxes = self.__No_MaxSuppresion(np.asarray(self.rects), 0.3)
-    
+        iterator = 0
+        while self.src.shape[0] > 64 and self.src.shape[1] > 64:
+            iterator += 1
+            for i in tqdm(range(0, self.maxRows)):
+                for j in range(0, self.maxCols):
+                    for dX in range(0, 3):
+                        for dY in range(0, 3):
+                            roi, xMin, xMax, yMin, yMax = self.getRoi(self.src, i, j, px=IMSIZE, dy=dX*20, dx=dY*20)
+                            rows, cols = roi.shape[0], roi.shape[1]
+                            if rows == 0 or cols == 0:
+                                break
+                            if rows != IMSIZE or cols != IMSIZE:
+                                roi = cv2.resize(roi, (IMSIZE, IMSIZE))
+                                rows, cols = roi.shape[0], roi.shape[1]    
+                            histG = self.HOG.getOpenCV(roi)
+                            histGE = self.stdScaler.transform(histG.reshape(1, -1))
+                            if self.classifier.predict(histGE):
+                                #cv2.rectangle(self.srcPrint, (yMin, xMin), (yMax, xMax), (0, 0, 255))
+                                self.recs_aux = np.array([xMin * iterator, yMin * iterator, xMax * iterator, yMax * iterator]) 
+                                self.rects.append(self.recs_aux)
+                                #plt.imshow(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB))
+                                #cv2.imwrite("Img/"+"ID"+str(j*1000)+str(i*100)+str(dY*10)+str(dX)+"Foi"+".jpg",roi)
+            self.src = cv2.pyrDown(self.src)
+            rows, cols = self.src.shape[0],self.src.shape[1]
+            self.maxRows = rows/IMSIZE
+            self.maxCols = cols/IMSIZE
+            
+        boxes = self.__No_MaxSuppresion(np.asarray(self.rects), 0.3)
         for bx in boxes:
             xMin = bx[0]
             yMin = bx[1]
@@ -122,8 +130,9 @@ class Utils:
             cv2.rectangle(self.srcPrint, (yMin, xMin), (yMax, xMax), (0, 255, 0))
             #print "Box detectado"
         #cv2.imwrite("ID" + str(ID) + "Rect.jpg", src2)
-        cv2.imwrite("ID" + "Rect.jpg", self.srcPrint)
-#        print "The ID: " + str(ID)
+        # print "Image Save On :" + RESULT + self.url
+        cv2.imwrite(RESULT + self.url, self.srcPrint)
+    #        print "The ID: " + str(ID)
     def __No_MaxSuppresion(self, boxes, overlapThresh):
         if len(boxes) == 0:
             print "Boxes Vazio"
