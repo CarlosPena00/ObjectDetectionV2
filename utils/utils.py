@@ -85,6 +85,7 @@ class Utils:
         rows, cols = srcUp.shape[0],srcUp.shape[1]
         self.HOG = HOG()
         self.src = srcUp.copy()
+        self.srcPrint = srcUp.copy()
         self.maxRows = rows/IMSIZE
         self.maxCols = cols/IMSIZE
         self.rects = []
@@ -103,27 +104,52 @@ class Utils:
                         if rows != IMSIZE or cols != IMSIZE:
                             roi = cv2.resize(roi, (IMSIZE, IMSIZE))
                             rows, cols = roi.shape[0], roi.shape[1]    
-                        histG = HOG.getOpenCV(roi)
-                        histGE = self.stdScaler.transform(histG)
+                        histG = self.HOG.getOpenCV(roi)
+                        histGE = self.stdScaler.transform(histG.reshape(1, -1))
                         if self.classifier.predict(histGE):
-                            cv2.rectangle(self.src, (yMin, xMin), (yMax, xMax), (0, 0, 255))
-                            #recs_aux = np.array([xMin, yMin, xMax, yMax]) 
-                            #self.rects.append(recs_aux)
-                            plt.imshow(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB))
+                            #cv2.rectangle(self.srcPrint, (yMin, xMin), (yMax, xMax), (0, 0, 255))
+                            self.recs_aux = np.array([xMin, yMin, xMax, yMax]) 
+                            self.rects.append(self.recs_aux)
+                            #plt.imshow(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB))
                             cv2.imwrite("Img/"+"ID"+str(j*1000)+str(i*100)+str(dY*10)+str(dX)+"Foi"+".jpg",roi)
-                            #boxes = non_max_suppression_fast(np.asarray(rects), 0.3)
+                            boxes = self.__No_MaxSuppresion(np.asarray(self.rects), 0.3)
     
-#        for bx in boxes:
-#            xMin = bx[0]
-#            yMin = bx[1]
-#            xMax = bx[2]
-#            yMax = bx[3]
-#            cv2.rectangle(src2, (yMin, xMin), (yMax, xMax), (0, 255, 0))
-#            #print "Box detectado"
-#        cv2.imwrite("ID" + str(ID) + "Rect.jpg", src2)
-        cv2.imwrite("ID" + "Rect.jpg", self.src)
+        for bx in boxes:
+            xMin = bx[0]
+            yMin = bx[1]
+            xMax = bx[2]
+            yMax = bx[3]
+            cv2.rectangle(self.srcPrint, (yMin, xMin), (yMax, xMax), (0, 255, 0))
+            #print "Box detectado"
+        #cv2.imwrite("ID" + str(ID) + "Rect.jpg", src2)
+        cv2.imwrite("ID" + "Rect.jpg", self.srcPrint)
 #        print "The ID: " + str(ID)
-# 
+    def __No_MaxSuppresion(self, boxes, overlapThresh):
+        if len(boxes) == 0:
+            print "Boxes Vazio"
+            return []
+        if boxes.dtype.kind == "i":
+            boxes = boxes.astype("float")
+        pick = []
+        x1, y1, x2, y2 = boxes[:,0], boxes[:,1], boxes[:,2], boxes[:,3]
+        area = (x2 - x1 + 1) * (y2 - y1 + 1)
+        idxs = np.argsort(y2)
+        while len(idxs) > 0:
+            last = len(idxs) - 1
+            i = idxs[last]
+            pick.append(i)
+            xx1 = np.maximum(x1[i], x1[idxs[:last]])
+            yy1 = np.maximum(y1[i], y1[idxs[:last]])
+            xx2 = np.minimum(x2[i], x2[idxs[:last]])
+            yy2 = np.minimum(y2[i], y2[idxs[:last]])
+            w = np.maximum(0, xx2 - xx1 + 1)
+            h = np.maximum(0, yy2 - yy1 + 1)
+            overlap = (w * h) / area[idxs[:last]]
+            idxs = np.delete(idxs, np.concatenate(([last],
+                np.where(overlap > overlapThresh)[0])))
+        return boxes[pick].astype("int")
+
+        
         
     
 

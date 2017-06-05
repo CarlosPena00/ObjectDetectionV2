@@ -8,15 +8,17 @@ import sys
 from tqdm import tqdm
 sys.path.insert(0, 'machine_learning')
 sys.path.insert(0, 'utils')
+sys.path.insert(0, 'Descriptors/hog')
 from machine_learning import MachineLearning
 from utils import Utils
-
+from hog import HOG
 # Constant
 
 HOG_URL = "./Descriptors/hog/"
 LBP_URL = "./Descriptors/lbp/"
 SAVE = "./Descriptors/Save/"
 SAMPLE_IMAGES = "./SampleImages/"
+IMG_URL = "./SampleImages/sample01.jpg"
 RESULT = "./Results/"
 UTILS = "./utils/"
 HISTOGRAM = "Histogram/"
@@ -36,8 +38,8 @@ if __name__ == "__main__":
     if len(sys.argv) <= 1:
         print "Error not flags: -c -h rbf rf linear || -l -h rbf rf linear"
     else:
+        Ut = Utils()
         if sys.argv[1] == '-c':
-            Ut = Utils()
             if sys.argv[2] == '-h':
 
                 print "------Getting Negative Samples from File------"
@@ -58,7 +60,7 @@ if __name__ == "__main__":
                 if sys.argv[3] == 'rbf':
                     modelFile = SAVE + RBF + MODEL + SAV
                     scalerFile = SAVE + RBF + SCALER + SAV
-                    classifier, cm, standardScaler = ML.svm(kernel='rbf')
+                    classifier, cm, standardScaler = ML.svm()
 
                 if sys.argv[3] == 'rf':
                     modelFile = SAVE + RF + MODEL + SAV
@@ -69,7 +71,7 @@ if __name__ == "__main__":
                 if sys.argv[3] == 'linear':
                     modelFile = SAVE + LINEAR + MODEL + SAV
                     scalerFile = SAVE + LINEAR + SCALER + SAV
-                    X_train, X_test, y_train, y_test, y_pred, classifier, cm, standardScaler = ML.linearSvm(
+                    classifier, cm, standardScaler = ML.linearSvm(
                         Ce=0.01)
 
                 print "-----------------Save The Model---------------"
@@ -77,7 +79,8 @@ if __name__ == "__main__":
                 pickle.dump(standardScaler, open(scalerFile, 'wb'))
 
                 print "-----------------Train The Model--------------"
-                train(classifier, standardScaler, std=1)
+                Ut.faceDetect(classifier, standardScaler, IMG_URL)
+                #train(classifier, standardScaler, std=1)
 
             if sys.argv[2] == 'l':
                 print "------NOT YET!------"
@@ -95,4 +98,6 @@ if __name__ == "__main__":
                     scalerFile = SAVE + LINEAR + SCALER + SAV
                 classifier = pickle.load(open(modelFile, 'rb'))
                 standardScaler = pickle.load(open(scalerFile, 'rb'))
-                train(classifier, standardScaler, std=1)
+                Ut.faceDetect(classifier, standardScaler, IMG_URL)
+                
+                #train(classifier, standardScaler, std=1)
