@@ -84,11 +84,13 @@ class F2D:
             self.numberOfImgs = self.listOfFolder[i][3]
             self.saveFile = self.folderName[:-1] + CSV
             print "----- Start Folder: " + self.folderName + " -----"
-            time.sleep(1)
+            time.sleep(2)
             if descriptor == 'HOG':
                 self.__fold2Hog()
-            else:
+            elif descriptor == 'LBP':
                 self.__fold2Lbp()
+            
+            
                 
                 
     def __fold2Hog(self):

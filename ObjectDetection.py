@@ -18,7 +18,7 @@ HOG_URL = "./Descriptors/hog/"
 LBP_URL = "./Descriptors/lbp/"
 SAVE = "./Descriptors/Save/"
 SAMPLE_IMAGES = "./SampleImages/"
-IMG_URL = "sample01.jpg"
+IMG_URL = "sample03.jpg"
 RESULT = "./Results/"
 UTILS = "./utils/"
 HISTOGRAM = "Histogram/"
@@ -42,51 +42,53 @@ if __name__ == "__main__":
         Ut = Utils()
         if sys.argv[1] == '-c':
             if sys.argv[2] == '-h':
+                Descriptor = "HOG"
+            if sys.argv[2] == '-l':
+                Descriptor = "LBP"
+            print "------Getting Negative Samples from File------"
+            XN = Ut.mergeCSV(positive=False, descriptor=Descriptor)
+            rowsN, colsN = XN.shape
+            YN = np.zeros(shape=(rowsN, 1), dtype=int)
+            print "------Getting Positive Samples from File------"
+            XP = Ut.mergeCSV(positive=True, descriptor=Descriptor)
+            rowsP, colsP = XP.shape
+            YP = np.ones(shape=(rowsP, 1), dtype=int)
+            X = np.vstack((XP, XN))
+            y = np.vstack((YP, YN))
+            y = y.ravel()
 
-                print "------Getting Negative Samples from File------"
-                XN = Ut.mergeCSV(positive=False)
-                rowsN, colsN = XN.shape
-                YN = np.zeros(shape=(rowsN, 1), dtype=int)
-                print "------Getting Positive Samples from File------"
-                XP = Ut.mergeCSV(positive=True)
-                rowsP, colsP = XP.shape
-                YP = np.ones(shape=(rowsP, 1), dtype=int)
-                X = np.vstack((XP, XN))
-                y = np.vstack((YP, YN))
-                y = y.ravel()
+            print "---------------Start The Model----------------"
+            ML = MachineLearning(X, y)
+            PCA = ML.PCA()
 
-                print "---------------Start The Model----------------"
-                ML = MachineLearning(X, y)
-                PCA = ML.PCA()
+            if sys.argv[3] == 'rbf':
+                modelFile = SAVE + Descriptor + RBF + MODEL + SAV
+                scalerFile = SAVE + Descriptor + RBF + SCALER + SAV
+                pcaFile = SAVE + Descriptor + RBF + PCA_URL + SAV
+                classifier, cm, standardScaler = ML.svm()
 
-                if sys.argv[3] == 'rbf':
-                    modelFile = SAVE + RBF + MODEL + SAV
-                    scalerFile = SAVE + RBF + SCALER + SAV
-                    pcaFile = SAVE + RBF + PCA_URL + SAV
-                    classifier, cm, standardScaler = ML.svm()
+            if sys.argv[3] == 'rf':
+                modelFile = SAVE + Descriptor + RF + MODEL + SAV
+                scalerFile = SAVE + Descriptor + RF + SCALER + SAV
+                pcaFile = SAVE + Descriptor + RF + PCA_URL + SAV
+                classifier, cm, standardScaler = ML.randomForest(
+                    N=100, theads=3)
 
-                if sys.argv[3] == 'rf':
-                    modelFile = SAVE + RF + MODEL + SAV
-                    scalerFile = SAVE + RF + SCALER + SAV
-                    pcaFile = SAVE + RF + PCA_URL + SAV
-                    classifier, cm, standardScaler = ML.randomForest(
-                        N=100, theads=3)
+            if sys.argv[3] == 'linear':
+                modelFile = SAVE + Descriptor + LINEAR + MODEL + SAV
+                scalerFile = SAVE + Descriptor + LINEAR + SCALER + SAV
+                pcaFile = SAVE + Descriptor + LINEAR + PCA_URL + SAV
+                classifier, cm, standardScaler = ML.linearSvm(
+                    Ce=0.01)
 
-                if sys.argv[3] == 'linear':
-                    modelFile = SAVE + LINEAR + MODEL + SAV
-                    scalerFile = SAVE + LINEAR + SCALER + SAV
-                    pcaFile = SAVE + LINEAR + PCA_URL + SAV
-                    classifier, cm, standardScaler = ML.linearSvm(
-                        Ce=0.01)
+            print "-----------------Save The Model---------------"
+            pickle.dump(classifier, open(modelFile, 'wb'))
+            pickle.dump(standardScaler, open(scalerFile, 'wb'))
+            pickle.dump(PCA, open(pcaFile, 'wb'))
 
-                print "-----------------Save The Model---------------"
-                pickle.dump(classifier, open(modelFile, 'wb'))
-                pickle.dump(standardScaler, open(scalerFile, 'wb'))
-                pickle.dump(PCA, open(pcaFile, 'wb'))
-
-                print "-----------------Train The Model--------------"
-                Ut.faceDetect(classifier, standardScaler, IMG_URL, PCA)
-                #train(classifier, standardScaler, std=1)
+            print "-----------------Train The Model--------------"
+            Ut.faceDetect(classifier, standardScaler, IMG_URL, PCA)
+            #train(classifier, standardScaler, std=1)
 
             if sys.argv[2] == 'l':
                 print "------NOT YET!------"
@@ -94,17 +96,17 @@ if __name__ == "__main__":
         if sys.argv[1] == '-l':
             if sys.argv[2] == '-h':
                 if sys.argv[3] == 'rbf':
-                    modelFile = SAVE + RBF + MODEL + SAV
-                    scalerFile = SAVE + RBF + SCALER + SAV
-                    pcaFile = SAVE + RBF + PCA_URL + SAV
+                    modelFile = SAVE + Descriptor + RBF + MODEL + SAV
+                    scalerFile = SAVE + Descriptor + RBF + SCALER + SAV
+                    pcaFile = SAVE + Descriptor + RBF + PCA_URL + SAV
                 if sys.argv[3] == 'rf':
-                    modelFile = SAVE + RF + MODEL + SAV
-                    scalerFile = SAVE + RF + SCALER + SAV
-                    pcaFile = SAVE + RF + PCA_URL + SAV
+                    modelFile = SAVE + Descriptor + RF + MODEL + SAV
+                    scalerFile = SAVE + Descriptor + RF + SCALER + SAV
+                    pcaFile = SAVE + Descriptor + RF + PCA_URL + SAV
                 if sys.argv[3] == 'linear':
-                    modelFile = SAVE + LINEAR + MODEL + SAV
-                    scalerFile = SAVE + LINEAR + SCALER + SAV
-                    pcaFile = SAVE + LINEAR + PCA_URL + SAV
+                    modelFile = SAVE + Descriptor + LINEAR + MODEL + SAV
+                    scalerFile = SAVE + Descriptor + LINEAR + SCALER + SAV
+                    pcaFile = SAVE + Descriptor + LINEAR + PCA_URL + SAV
                 classifier = pickle.load(open(modelFile, 'rb'))
                 standardScaler = pickle.load(open(scalerFile, 'rb'))
                 PCA = pickle.load(open(pcaFile, 'rb'))
