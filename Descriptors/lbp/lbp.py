@@ -1,16 +1,14 @@
 import cv2
 import numpy as np
-
+import matplotlib.pyplot as plt
 
 class LBP:
     def getHistogramOfLBP(self, image):
         # Convert to Grayscale
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
         # get rows and cols len of the image
         rows = image.shape[0]
         cols = image.shape[1]
-
         # initialize empty list of lbp features
         fullLBP = np.float32()
         for i in range(1, rows - 1):
@@ -39,3 +37,8 @@ class LBP:
                 fullLBP = np.append(fullLBP, cellLBP)
         fullLBPMatrix = np.asmatrix(fullLBP)
         return fullLBPMatrix
+    
+    def plotLBPHist(myList):
+        plt.hist(myList, bins=np.arange(0, 255), align='left', normed='True')
+        plt.xlim(0, 255)
+        plt.show()
