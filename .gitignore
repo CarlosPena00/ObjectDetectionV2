@@ -35,3 +35,7 @@ Data/*/
 SampleImages/*
 *.pyc
 *.csv
+Descriptors/Save/*
+Descriptors/*/Histogram*
+Results/*
+
