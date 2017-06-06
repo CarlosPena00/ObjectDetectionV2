@@ -40,17 +40,24 @@ class Utils:
             csvFiles = LBP_URL
         if positive is True:
             csvFiles += POSITIVE
+            #negPos = POSITIVE
             print csvFiles
             csvList = positiveList + CSV
         else:
             csvFiles += NEGATIVE
+            #negPos = NEGATIVE
             csvList = negativeList + CSV
         dataList = pd.read_csv(csvList).iloc[:, :].values
         xList = np.empty([1, NUMBER_OF_DIMS], dtype="float32")
         for folder in dataList:
             print "---- Start To Get Folder " + csvFiles + folder[0] + " ----"
             dataset = pd.read_csv(csvFiles + folder[0] + CSV, dtype="float32")
+            #dataset2 = pd.read_csv(LBP_URL + negPos + folder[0] + CSV, dtype="float32")
             xNew = dataset.iloc[:, :].values
+            #xNew2 = dataset2.iloc[:, :].values
+            
+            #print xNew.shape,xNew2.shape
+            #xList = np.hstack((xNew,xNew2))
             xList = np.vstack((xList, xNew))
         xList = np.delete(xList, (0), axis=0)
         return xList
@@ -60,8 +67,11 @@ class Utils:
         xMax = xMin + px
         yMin = dy + (idY * px)
         yMax = yMin + px
-        return src[xMin:xMax, yMin:yMax, :], xMin, xMax, yMin, yMax
-    
+        if len(src.shape) == 3:
+            return src[xMin:xMax, yMin:yMax, :], xMin, xMax, yMin, yMax
+        if len(src.shape) == 2:
+            return src[xMin:xMax, yMin:yMax], xMin, xMax, yMin, yMax
+            
     def getBlock(self, src, idX, idY, px=16):
         xMin = idX * (px / 2)
         xMax = xMin + px
@@ -69,7 +79,7 @@ class Utils:
         yMax = yMin + px
         return src[xMin:xMax, yMin:yMax, :]
     
-    def faceDetect(self, classifier, stdScaler, imgUrl, PCA, upSample=True, pyr=False):
+    def faceDetect(self, classifier, stdScaler, imgUrl, PCA, upSample=True, pyr=True):
         'A face detector'
         self.classifier = classifier
         self.stdScaler = stdScaler
