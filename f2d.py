@@ -57,9 +57,26 @@ class F2D:
         self.blur = blur
         self.openCV = openCV
 
-    def transform(self, descriptor='HOG'):
+    def savePlotOfHistogram(self, hist, globalHist, fileName='hist'):
+        if self.descriptor == 'HOG':
+            url = HOG_URL + HISTOGRAM
+        if self.descriptor == 'LBP':
+            url = LBP_URL + HISTOGRAM
+        hog = hist.ravel()
+        histOfHist = np.zeros(shape=9, dtype=float)
+        for z in range(0, 9):
+            histOfHist[z] = sum(hog[i] for i in range(len(hog)) if i % 9 == z)
+            globalHist[z] += histOfHist[z]
+        plt.plot(histOfHist)
+        plt.savefig(url + fileName + ".png")
+        plt.close()
+
+    def transform(self, descriptor='HOG', histogram=False):
         self.descriptor = descriptor
         self.hog = HOG()
+        self.lbp = LBP()
+        self.Ut = Utils()
+        self.histogram = histogram
         for i in range(self.argMin, self.argMax):
             self.folderName = self.listOfFolder[i][0]
             self.typeOfFolder = "." + self.listOfFolder[i][1]
@@ -68,12 +85,17 @@ class F2D:
             self.saveFile = self.folderName[:-1] + CSV
             print "----- Start Folder: " + self.folderName + " -----"
             time.sleep(1)
-            self.__fold2Hog()
-
+            if descriptor == 'HOG':
+                self.__fold2Hog()
+            else:
+                self.__fold2Lbp()
+                
+                
     def __fold2Hog(self):
         lista = np.empty([1, NUMBER_OF_DIMS])
+        globalHist = np.zeros(shape=9, dtype=np.float128)
         # globalHist = np.zeros(shape=9, dtype=np.float128);
-        for f in tqdm(range(1, self.numberOfImgs)):
+        for f in tqdm(range(1, self.numberOfImgs + 1)):
             src = cv2.imread(DATA_URL + self.folderName +
                              str(f) + self.typeOfFolder)
             rows = src.shape[0]
@@ -105,6 +127,8 @@ class F2D:
                             rowsR, colsR = roi.shape[0], roi.shape[1]
 
                         histG = self.hog.getOpenCV(roi)
+                        if self.histogram:
+                            self.savePlotOfHistogram(histG, globalHist, fileName=str(f))
                         # Plot
                         lista = np.vstack((lista, histG))
             else:
@@ -117,7 +141,57 @@ class F2D:
         np.savetxt(HOG_URL + self.folder + self.folderName[:-1] + CSV,
                    X, delimiter=',', fmt="%f")
 
+    def __fold2Lbp(self):
+        lista = np.empty([1, 5776]) # 5776 # np.empty([1, 2369])
+        for f in tqdm(range(1, self.numberOfImgs + 1)):
+            src = cv2.imread(DATA_URL + self.folderName +
+                             str(f) + self.typeOfFolder, 0)
+            rows, cols = src.shape[0], src.shape[1]
+            if rows > 1 and cols > 1:
+                if self.blur == 1:
+                    src = cv2.pyrUp(cv2.pyrDown(src))
+                rows, cols = src.shape[0], src.shape[1]
+    
+                if self.cut == 1:
+                    maxRows = rows / IMSIZE
+                    maxCols = cols / IMSIZE
+                else:
+                    maxRows = 1
+                    maxCols = 1
+                for j in range(0, maxRows):
+                    for i in range(0, maxCols):
+                        if self.cut == 1:
+                            roi, xMin, xMax, yMin, yMax = self.Ut.getRoi(
+                                src, j, i, px=IMSIZE)
+                        if self.cut == 0:
+                            roi = src
+                        rowsR, colsR = roi.shape[0], roi.shape[1]
+    
+                        if rowsR < 1 or colsR < 1:
+                            print "F2H Fold2LBP erro Size"
+                            continue
+    
+                        if rowsR != IMSIZE or colsR != IMSIZE:
+                            roi = cv2.resize(roi, (IMSIZE, IMSIZE))
 
+                        histLBP = local_binary_pattern(roi,8,1)
+                        histLBP = histLBP.ravel()
+                        # print lista.shape , histLBP.shape, roi.shape
+                        lista = np.vstack((lista, histLBP))
+            else:
+                print "Error Img not fond"
+                histLBP = np.zeros(5776)
+                lista = np.vstack((lista, histLBP))
+    
+        X = np.delete(lista, (0), axis=0)
+        np.savetxt(LBP_URL + self.folder + self.folderName[:-1] + CSV,
+                   X, delimiter=',', fmt="%d")
+
+from skimage.feature import local_binary_pattern
+import cv2
 if __name__ == "__main__":
-    f2d = F2D(positive=True, argMin=3)
-    f2d.transform()
+    f2d = F2D(positive=False, argMin= 0)
+    f2d.transform(descriptor='LBP')
+    #src = cv2.imread("./SampleImages/sample01.jpg",0)
+    #print src.shape
+    #lbp = local_binary_pattern(src,8,1)
