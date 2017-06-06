@@ -69,18 +69,19 @@ class Utils:
         yMax = yMin + px
         return src[xMin:xMax, yMin:yMax, :]
     
-    def faceDetect(self, classifier, stdScaler, imgUrl, upSample=True, pyr=False):
+    def faceDetect(self, classifier, stdScaler, imgUrl, PCA, upSample=True, pyr=False):
         'A face detector'
         self.classifier = classifier
         self.stdScaler = stdScaler
         self.url = imgUrl
         self.pyr = pyr
+        self.PCA = PCA
         src = cv2.imread(SAMPLE_IMAGES + imgUrl)
         rows, cols = src.shape[0],src.shape[1]
         if upSample:  
             rows = int(rows * 1.5)
             cols = int(cols * 1.5)    
-            srcUp = cv2.resize(src,(rows,cols)) #cv2.pyrDown(src)
+            srcUp = cv2.resize(src,(cols,rows)) #cv2.pyrDown(src)
         else:
             srcUp = src
         # srcUp = cv2.pyrUp( cv2.pyrDown(src))
@@ -112,6 +113,7 @@ class Utils:
                                 rows, cols = roi.shape[0], roi.shape[1]    
                             histG = self.HOG.getOpenCV(roi)
                             histGE = self.stdScaler.transform(histG.reshape(1, -1))
+                            histGE = self.PCA.transform(histGE)
                             if self.classifier.predict(histGE):
                                 #cv2.rectangle(self.srcPrint, (yMin, xMin), (yMax, xMax), (0, 0, 255))
                                 self.recs_aux = np.array([xMin * iterator, yMin * iterator, xMax * iterator, yMax * iterator]) 
@@ -134,6 +136,7 @@ class Utils:
             #print "Box detectado"
         #cv2.imwrite("ID" + str(ID) + "Rect.jpg", src2)
         # print "Image Save On :" + RESULT + self.url
+        
         cv2.imwrite(RESULT + self.url, self.srcPrint)
     #        print "The ID: " + str(ID)
     def __No_MaxSuppresion(self, boxes, overlapThresh):

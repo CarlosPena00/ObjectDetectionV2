@@ -8,16 +8,20 @@ from sklearn.metrics import confusion_matrix
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_curve, auc
 from sklearn.svm import LinearSVC
+from sklearn.decomposition import PCA
 
+PCA_SAMPLE = 550
 
 class MachineLearning:
      'Common base class for all ML methods'
-     def __init__(self,X,y):
+     def __init__(self, X, y, usePCA=True):
          self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
                  X, y, test_size=0.20, random_state=0)
          self.sc_X = StandardScaler()
          self.X_train = self.sc_X.fit_transform(self.X_train)
          self.X_test = self.sc_X.transform(self.X_test)
+
+
      
      def getClassifier(self):
          self.classifier.fit(self.X_train, self.y_train)
@@ -41,3 +45,10 @@ class MachineLearning:
                  n_estimators=N, n_jobs=theads, criterion='entropy')
          return self.getClassifier();
          
+     def PCA(self, n=PCA_SAMPLE):
+        pca = PCA(n_components=n)
+        self.X_train = pca.fit_transform(self.X_train)
+        self.X_test = pca.transform(self.X_test)
+        explained_variance = pca.explained_variance_ratio_
+        print "PCA sum of features", sum(explained_variance)
+        return pca

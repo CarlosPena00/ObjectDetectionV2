@@ -28,6 +28,7 @@ SCALER = "Scaler"
 MODEL = "Model"
 LINEAR = "linear"
 RBF = "rbf"
+PCA_URL = "PCA"
 RF = "rf"
 JPG = ".jpg"
 PNG = ".png"
@@ -56,30 +57,35 @@ if __name__ == "__main__":
 
                 print "---------------Start The Model----------------"
                 ML = MachineLearning(X, y)
+                PCA = ML.PCA()
 
                 if sys.argv[3] == 'rbf':
                     modelFile = SAVE + RBF + MODEL + SAV
                     scalerFile = SAVE + RBF + SCALER + SAV
+                    pcaFile = SAVE + RBF + PCA_URL + SAV
                     classifier, cm, standardScaler = ML.svm()
 
                 if sys.argv[3] == 'rf':
                     modelFile = SAVE + RF + MODEL + SAV
                     scalerFile = SAVE + RF + SCALER + SAV
+                    pcaFile = SAVE + RF + PCA_URL + SAV
                     classifier, cm, standardScaler = ML.randomForest(
                         N=100, theads=3)
 
                 if sys.argv[3] == 'linear':
                     modelFile = SAVE + LINEAR + MODEL + SAV
                     scalerFile = SAVE + LINEAR + SCALER + SAV
+                    pcaFile = SAVE + LINEAR + PCA_URL + SAV
                     classifier, cm, standardScaler = ML.linearSvm(
                         Ce=0.01)
 
                 print "-----------------Save The Model---------------"
                 pickle.dump(classifier, open(modelFile, 'wb'))
                 pickle.dump(standardScaler, open(scalerFile, 'wb'))
+                pickle.dump(PCA, open(pcaFile, 'wb'))
 
                 print "-----------------Train The Model--------------"
-                Ut.faceDetect(classifier, standardScaler, IMG_URL)
+                Ut.faceDetect(classifier, standardScaler, IMG_URL, PCA)
                 #train(classifier, standardScaler, std=1)
 
             if sys.argv[2] == 'l':
@@ -90,14 +96,19 @@ if __name__ == "__main__":
                 if sys.argv[3] == 'rbf':
                     modelFile = SAVE + RBF + MODEL + SAV
                     scalerFile = SAVE + RBF + SCALER + SAV
+                    pcaFile = SAVE + RBF + PCA_URL + SAV
                 if sys.argv[3] == 'rf':
                     modelFile = SAVE + RF + MODEL + SAV
                     scalerFile = SAVE + RF + SCALER + SAV
+                    pcaFile = SAVE + RF + PCA_URL + SAV
                 if sys.argv[3] == 'linear':
                     modelFile = SAVE + LINEAR + MODEL + SAV
                     scalerFile = SAVE + LINEAR + SCALER + SAV
+                    pcaFile = SAVE + LINEAR + PCA_URL + SAV
                 classifier = pickle.load(open(modelFile, 'rb'))
                 standardScaler = pickle.load(open(scalerFile, 'rb'))
-                Ut.faceDetect(classifier, standardScaler, IMG_URL)
+                PCA = pickle.load(open(pcaFile, 'rb'))
+
+                Ut.faceDetect(classifier, standardScaler, IMG_URL, PCA)
                 
                 #train(classifier, standardScaler, std=1)
