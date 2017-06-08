@@ -3,7 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class LBP:
-    def getHistogramOfLBP(self, image):
+    'Local Binary Patern'
+    def getLbp(self, image):
         # Convert to Grayscale
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         # get rows and cols len of the image
@@ -42,3 +43,6 @@ class LBP:
         plt.hist(myList, bins=np.arange(0, 255), align='left', normed='True')
         plt.xlim(0, 255)
         plt.show()
+        
+
+    
