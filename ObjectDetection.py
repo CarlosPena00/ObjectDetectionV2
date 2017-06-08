@@ -9,16 +9,20 @@ from tqdm import tqdm
 sys.path.insert(0, 'machine_learning')
 sys.path.insert(0, 'utils')
 sys.path.insert(0, 'Descriptors/hog')
+sys.path.insert(0, 'Descriptors/lbp')
 from machine_learning import MachineLearning
 from utils import Utils
 from hog import HOG
+from lbp import LBP
+
+
 # Constant
 
 HOG_URL = "./Descriptors/hog/"
 LBP_URL = "./Descriptors/lbp/"
 SAVE = "./Descriptors/Save/"
 SAMPLE_IMAGES = "./SampleImages/"
-IMG_URL = "sample11.jpg"
+IMG_URL = "sample12.jpg"
 RESULT = "./Results/"
 UTILS = "./utils/"
 HISTOGRAM = "Histogram/"
@@ -50,7 +54,7 @@ class ObjectDetection:
             self.usePCA = False
 
         
-    def run(self, imgUrl, upSample=True, pyr=False):
+    def run(self, imgUrl, upSample=True, pyr=True):
         'A face detector'
         self.url = imgUrl
         self.pyr = pyr
@@ -59,12 +63,12 @@ class ObjectDetection:
         if upSample:  
             rows = int(rows * 1.5)
             cols = int(cols * 1.5)    
-            srcUp = cv2.resize(src,(cols,rows)) #cv2.pyrDown(src)
+            srcUp = cv2.resize(src,(cols,rows))
         else:
             srcUp = src
-        # srcUp = cv2.pyrUp( cv2.pyrDown(src))
         rows, cols = srcUp.shape[0], srcUp.shape[1]
         self.HOG = HOG()
+        self.LBP = LBP()
         self.src = srcUp.copy()
         self.srcPrint = srcUp.copy()
         self.maxRows = rows/IMSIZE
@@ -92,14 +96,12 @@ class ObjectDetection:
                                 rows, cols = roi.shape[0], roi.shape[1]    
                             histG = self.HOG.getOpenCV(roi)
                             histGE = self.stdScaler.transform(histG.reshape(1, -1))
+                            
                             if self.usePCA:
                                 histGE = self.PCA.transform(histGE)
                             if self.classifier.predict(histGE):
-                                #cv2.rectangle(self.srcPrint, (yMin, xMin), (yMax, xMax), (0, 0, 255))
                                 self.recs_aux = np.array([xMin * iterator, yMin * iterator, xMax * iterator, yMax * iterator]) 
                                 self.rects.append(self.recs_aux)
-                                #plt.imshow(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB))
-                                #cv2.imwrite("Img/"+"ID"+str(j*1000)+str(i*100)+str(dY*10)+str(dX)+"Foi"+".jpg",roi)
             self.src = cv2.pyrDown(self.src)
             rows, cols = self.src.shape[0],self.src.shape[1]
             self.maxRows = rows/IMSIZE
@@ -112,7 +114,22 @@ class ObjectDetection:
             cv2.rectangle(self.srcPrint, (yMin, xMin), (yMax, xMax), (0, 255, 0))       
         cv2.imwrite(RESULT + self.url, self.srcPrint)
 
-
+    
+    def __getHog(self, src):
+        histG = self.HOG.getOpenCV(src)
+        histGE = self.stdScaler.transform(histG.reshape(1, -1))        
+        if self.usePCA:
+            histGE = self.PCA.transform(histGE)
+        return histGE
+    
+    def __getLbp(self, src):
+        localBin = self.LBP.getLbp(src)
+        localBinE = self.stdScaler.transform(localBin.reshape(1, -1))  
+        if self.usePCA:
+            localBinE = self.PCA.transform(localBinE)
+        return localBinE
+    
+    
     def __No_MaxSuppresion(self, boxes, overlapThresh):
         if len(boxes) == 0:
             print "Boxes Vazio"
@@ -142,8 +159,6 @@ class ObjectDetection:
 
 if __name__ == "__main__":
 
-    
-    
 
     if len(sys.argv) <= 1:
         print "Error not flags: -c -h rbf rf linear || -l -h rbf rf linear"
@@ -210,22 +225,27 @@ if __name__ == "__main__":
 
         if sys.argv[1] == '-l':
             if sys.argv[2] == '-h':
-                if sys.argv[3] == 'rbf':
-                    modelFile = SAVE + Descriptor + RBF + MODEL + SAV
-                    scalerFile = SAVE + Descriptor + RBF + SCALER + SAV
-                    pcaFile = SAVE + Descriptor + RBF + PCA_URL + SAV
-                if sys.argv[3] == 'rf':
-                    modelFile = SAVE + Descriptor + RF + MODEL + SAV
-                    scalerFile = SAVE + Descriptor + RF + SCALER + SAV
-                    pcaFile = SAVE + Descriptor + RF + PCA_URL + SAV
-                if sys.argv[3] == 'linear':
-                    modelFile = SAVE + Descriptor + LINEAR + MODEL + SAV
-                    scalerFile = SAVE + Descriptor + LINEAR + SCALER + SAV
-                    pcaFile = SAVE + Descriptor + LINEAR + PCA_URL + SAV
-                classifier = pickle.load(open(modelFile, 'rb'))
-                standardScaler = pickle.load(open(scalerFile, 'rb'))
-                PCA = pickle.load(open(pcaFile, 'rb'))
+                Descriptor = "HOG"
+                pcaFeature = 550
+            if sys.argv[2] == '-l':
+                Descriptor = "LBP"
+                
+            if sys.argv[3] == 'rbf':
+                modelFile = SAVE + Descriptor + RBF + MODEL + SAV
+                scalerFile = SAVE + Descriptor + RBF + SCALER + SAV
+                pcaFile = SAVE + Descriptor + RBF + PCA_URL + SAV
+            if sys.argv[3] == 'rf':
+                modelFile = SAVE + Descriptor + RF + MODEL + SAV
+                scalerFile = SAVE + Descriptor + RF + SCALER + SAV
+                pcaFile = SAVE + Descriptor + RF + PCA_URL + SAV
+            if sys.argv[3] == 'linear':
+                modelFile = SAVE + Descriptor + LINEAR + MODEL + SAV
+                scalerFile = SAVE + Descriptor + LINEAR + SCALER + SAV
+                pcaFile = SAVE + Descriptor + LINEAR + PCA_URL + SAV
+            classifier = pickle.load(open(modelFile, 'rb'))
+            standardScaler = pickle.load(open(scalerFile, 'rb'))
+            PCA = pickle.load(open(pcaFile, 'rb'))
 
-                detect = ObjectDetection(classifier, standardScaler, PCA)
-                detect.run(IMG_URL)
-                #train(classifier, standardScaler, std=1)
+            detect = ObjectDetection(classifier, standardScaler, PCA)
+            detect.run(IMG_URL)
+            #train(classifier, standardScaler, std=1)
