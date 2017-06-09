@@ -44,12 +44,13 @@ IMSIZE = 76
 
 
 class ObjectDetection:
-    def __init__(self, classifier, stdScaler, PCA=''):
+    def __init__(self, classifier, stdScaler, hogPCA='', lbpPCA=''):
         self.classifier = classifier
         self.stdScaler = stdScaler
-        if type(PCA) != str:
+        if type(hogPCA) != str and type(lbpPCA) != str :
             self.usePCA = True
-            self.PCA = PCA
+            self.hogPCA = hogPCA
+            self.lbpPCA = lbpPCA
         else:
             self.usePCA = False
 
@@ -94,12 +95,9 @@ class ObjectDetection:
                             if rows != IMSIZE or cols != IMSIZE:
                                 roi = cv2.resize(roi, (IMSIZE, IMSIZE))
                                 rows, cols = roi.shape[0], roi.shape[1]    
-                            histG = self.HOG.getOpenCV(roi)
-                            histGE = self.stdScaler.transform(histG.reshape(1, -1))
                             
-                            if self.usePCA:
-                                histGE = self.PCA.transform(histGE)
-                            if self.classifier.predict(histGE):
+                            features = self.__getHog(roi)
+                            if self.classifier.predict(features):
                                 self.recs_aux = np.array([xMin * iterator, yMin * iterator, xMax * iterator, yMax * iterator]) 
                                 self.rects.append(self.recs_aux)
             self.src = cv2.pyrDown(self.src)
@@ -119,15 +117,20 @@ class ObjectDetection:
         histG = self.HOG.getOpenCV(src)
         histGE = self.stdScaler.transform(histG.reshape(1, -1))        
         if self.usePCA:
-            histGE = self.PCA.transform(histGE)
+            histGE = self.hogPCA.transform(histGE)
         return histGE
     
     def __getLbp(self, src):
         localBin = self.LBP.getLbp(src)
         localBinE = self.stdScaler.transform(localBin.reshape(1, -1))  
         if self.usePCA:
-            localBinE = self.PCA.transform(localBinE)
+            localBinE = self.lbpPCA.transform(localBinE)
         return localBinE
+    
+    def __getHobLbp(self, src):
+        hog = self.__getHog(src)
+        lbp = self.__getLbp(src)
+        return np.hstack((hog,lbp))
     
     
     def __No_MaxSuppresion(self, boxes, overlapThresh):
@@ -170,6 +173,7 @@ if __name__ == "__main__":
                 pcaFeature = 550
             if sys.argv[2] == '-l':
                 Descriptor = "LBP"
+                pcaFeature = 550
             print "------Getting Negative Samples from File------"
             XN = Ut.mergeCSV(positive=False, descriptor=Descriptor)
             rowsN, colsN = XN.shape
