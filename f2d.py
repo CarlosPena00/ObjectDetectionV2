@@ -86,27 +86,36 @@ class F2D:
             print "----- Start Folder: " + self.folderName + " -----"
             time.sleep(2)
             if descriptor == 'HOG':
-                self.__fold2Hog()
+                self.url = HOG_URL
+                self.dims = NUMBER_OF_DIMS
+                self.color = 1
+                self.fmt = "%f"
             elif descriptor == 'LBP':
-                self.__fold2Lbp()
+                self.url = LBP_URL
+                self.dims = 5776
+                self.color = 0
+                self.fmt = "%d"
+            self.__fold2features()
             
+    def __getFeatures(self, img):
+        if self.descriptor == 'HOG':
+            return self.hog.getOpenCV(img)
+        if self.descriptor == 'LBP':
+            histLBP = local_binary_pattern(img,8,1)
+            return histLBP.ravel()
             
+        
                 
-                
-    def __fold2Hog(self):
-        lista = np.empty([1, NUMBER_OF_DIMS])
-        globalHist = np.zeros(shape=9, dtype=np.float128)
-        # globalHist = np.zeros(shape=9, dtype=np.float128);
+    def __fold2features(self):
+        lista = np.empty([1, self.dims])
         for f in tqdm(range(1, self.numberOfImgs + 1)):
             src = cv2.imread(DATA_URL + self.folderName +
-                             str(f) + self.typeOfFolder)
-            rows = src.shape[0]
-            cols = src.shape[1]
+                             str(f) + self.typeOfFolder, self.color)
+            rows, cols = src.shape[0], src.shape[1]
             if rows > 1 and cols > 1:
                 if self.blur:
                     src = cv2.pyrUp(cv2.pyrDown(src))
-                    rows = src.shape[0]
-                    cols = src.shape[1]
+                    rows, cols = src.shape[0], src.shape[1]
                 if self.cut:
                     maxRows = rows / IMSIZE
                     maxCols = cols / IMSIZE
@@ -128,71 +137,24 @@ class F2D:
                             roi = cv2.resize(roi, (IMSIZE, IMSIZE))
                             rowsR, colsR = roi.shape[0], roi.shape[1]
 
-                        histG = self.hog.getOpenCV(roi)
-                        if self.histogram:
-                            self.savePlotOfHistogram(histG, globalHist, fileName=str(f))
-                        # Plot
-                        lista = np.vstack((lista, histG))
+                        hist = self.__getFeatures(roi)
+                        lista = np.vstack((lista, hist))
             else:
                 print "f2d.py fold2Hog 99 ERRO roi.shape > (1,1)"
-                histG = np.zeros(NUMBER_OF_DIMS)
-                lista = np.vstack((lista, histG))
+                hist = np.zeros(NUMBER_OF_DIMS)
+                lista = np.vstack((lista, hist))
         # globalHistMean = globalHist/float(f)
         # Save plot of Histogram
         X = np.delete(lista, (0), axis=0)
-        np.savetxt(HOG_URL + self.folder + self.folderName[:-1] + CSV,
+        np.savetxt(self.url + self.folder + self.folderName[:-1] + CSV,
                    X, delimiter=',', fmt="%f")
 
-    def __fold2Lbp(self):
-        lista = np.empty([1, 5776]) # 5776 # np.empty([1, 2369])
-        for f in tqdm(range(1, self.numberOfImgs + 1)):
-            src = cv2.imread(DATA_URL + self.folderName +
-                             str(f) + self.typeOfFolder, 0)
-            rows, cols = src.shape[0], src.shape[1]
-            if rows > 1 and cols > 1:
-                if self.blur == 1:
-                    src = cv2.pyrUp(cv2.pyrDown(src))
-                rows, cols = src.shape[0], src.shape[1]
-    
-                if self.cut == 1:
-                    maxRows = rows / IMSIZE
-                    maxCols = cols / IMSIZE
-                else:
-                    maxRows = 1
-                    maxCols = 1
-                for j in range(0, maxRows):
-                    for i in range(0, maxCols):
-                        if self.cut == 1:
-                            roi, xMin, xMax, yMin, yMax = self.Ut.getRoi(
-                                src, j, i, px=IMSIZE)
-                        if self.cut == 0:
-                            roi = src
-                        rowsR, colsR = roi.shape[0], roi.shape[1]
-    
-                        if rowsR < 1 or colsR < 1:
-                            print "F2H Fold2LBP erro Size"
-                            continue
-    
-                        if rowsR != IMSIZE or colsR != IMSIZE:
-                            roi = cv2.resize(roi, (IMSIZE, IMSIZE))
-
-                        histLBP = local_binary_pattern(roi,8,1)
-                        histLBP = histLBP.ravel()
-                        # print lista.shape , histLBP.shape, roi.shape
-                        lista = np.vstack((lista, histLBP))
-            else:
-                print "Error Img not fond"
-                histLBP = np.zeros(5776)
-                lista = np.vstack((lista, histLBP))
-    
-        X = np.delete(lista, (0), axis=0)
-        np.savetxt(LBP_URL + self.folder + self.folderName[:-1] + CSV,
-                   X, delimiter=',', fmt="%d")
 
 from skimage.feature import local_binary_pattern
-import cv2
+import cv2 #12499
 if __name__ == "__main__":
-    f2d = F2D(positive=False, argMin= 0)
+    f2d = F2D(positive=False, argMin=1, argMax=2)
+    #f2d.transform(descriptor='HOG')
     f2d.transform(descriptor='LBP')
     #src = cv2.imread("./SampleImages/sample01.jpg",0)
     #print src.shape
