@@ -5,6 +5,7 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import pickle
 import sys
+import time
 from tqdm import tqdm
 sys.path.insert(0, 'machine_learning')
 sys.path.insert(0, 'utils')
@@ -16,13 +17,15 @@ from hog import HOG
 from lbp import LBP
 
 
+from skimage.feature import local_binary_pattern
+
 # Constant
 
 HOG_URL = "./Descriptors/hog/"
 LBP_URL = "./Descriptors/lbp/"
 SAVE = "./Descriptors/Save/"
 SAMPLE_IMAGES = "./SampleImages/"
-IMG_URL = "sample12.jpg"
+IMG_URL = "sample11.jpg"
 RESULT = "./Results/"
 UTILS = "./utils/"
 HISTOGRAM = "Histogram/"
@@ -38,7 +41,7 @@ JPG = ".jpg"
 PNG = ".png"
 SAV = ".sav"
 CSV = ".csv"
-usePCA = True
+usePCA = False
 NUMBER_OF_DIMS_HOG = 1764
 IMSIZE = 76
 
@@ -47,7 +50,8 @@ class ObjectDetection:
     def __init__(self, classifier, stdScaler, hogPCA='', lbpPCA=''):
         self.classifier = classifier
         self.stdScaler = stdScaler
-        if type(hogPCA) != str and type(lbpPCA) != str :
+        if usePCA:
+        #if type(hogPCA) != str and type(lbpPCA) != str :
             self.usePCA = True
             self.hogPCA = hogPCA
             self.lbpPCA = lbpPCA
@@ -55,10 +59,11 @@ class ObjectDetection:
             self.usePCA = False
 
         
-    def run(self, imgUrl, upSample=True, pyr=True):
+    def run(self, imgUrl, upSample=True, pyr=False, descriptor='HOG'):
         'A face detector'
         self.url = imgUrl
         self.pyr = pyr
+        self.descriptor = descriptor
         src = cv2.imread(SAMPLE_IMAGES + imgUrl)
         rows, cols = src.shape[0],src.shape[1]
         if upSample:  
@@ -95,7 +100,7 @@ class ObjectDetection:
                             if rows != IMSIZE or cols != IMSIZE:
                                 roi = cv2.resize(roi, (IMSIZE, IMSIZE))
                                 rows, cols = roi.shape[0], roi.shape[1]    
-                            
+
                             features = self.__getHog(roi)
                             if self.classifier.predict(features):
                                 self.recs_aux = np.array([xMin * iterator, yMin * iterator, xMax * iterator, yMax * iterator]) 
@@ -110,9 +115,18 @@ class ObjectDetection:
         for bx in boxes:
             xMin, yMin, xMax, yMax = bx[0], bx[1], bx[2], bx[3]
             cv2.rectangle(self.srcPrint, (yMin, xMin), (yMax, xMax), (0, 255, 0))       
-        cv2.imwrite(RESULT + self.url, self.srcPrint)
+        cv2.imwrite( RESULT +"LBP_" + self.url , self.srcPrint)
 
-    
+
+    def __getFeatures(self,src):
+        if self.descriptor == 'HOG':
+            return self.__getHog(src)
+        if self.descriptor == 'LBP':
+            return self.__getLbp(src)
+        if self.descriptor =='HOGLBP':
+            return self.__getHogLbp(src)
+        
+        
     def __getHog(self, src):
         histG = self.HOG.getOpenCV(src)
         histGE = self.stdScaler.transform(histG.reshape(1, -1))        
@@ -121,13 +135,14 @@ class ObjectDetection:
         return histGE
     
     def __getLbp(self, src):
-        localBin = self.LBP.getLbp(src)
-        localBinE = self.stdScaler.transform(localBin.reshape(1, -1))  
+        src = cv2.cvtColor(src,cv2.COLOR_BGR2GRAY)
+        localBin = local_binary_pattern(src,8,1).ravel() 
+        localBin = self.stdScaler.transform(localBin.reshape(1, -1))
         if self.usePCA:
-            localBinE = self.lbpPCA.transform(localBinE)
-        return localBinE
+            localBin = self.lbpPCA.transform(localBin)
+        return localBin
     
-    def __getHobLbp(self, src):
+    def __getHogLbp(self, src):
         hog = self.__getHog(src)
         lbp = self.__getLbp(src)
         return np.hstack((hog,lbp))
@@ -162,18 +177,19 @@ class ObjectDetection:
 
 if __name__ == "__main__":
 
-
     if len(sys.argv) <= 1:
         print "Error not flags: -c -h rbf rf linear || -l -h rbf rf linear"
     else:
         Ut = Utils()
         if sys.argv[1] == '-c':
+            pcaFeature = 550
             if sys.argv[2] == '-h':
                 Descriptor = "HOG"
-                pcaFeature = 550
             if sys.argv[2] == '-l':
                 Descriptor = "LBP"
-                pcaFeature = 550
+            if sys.argv[2] == '-hl':
+                Descriptor = "HOGLBP"
+                
             print "------Getting Negative Samples from File------"
             XN = Ut.mergeCSV(positive=False, descriptor=Descriptor)
             rowsN, colsN = XN.shape
@@ -192,9 +208,9 @@ if __name__ == "__main__":
             print "---------------Start The Model----------------"
             ML = MachineLearning(X, y)
             if usePCA:
-                PCA = ML.PCA(n=550)
+                PCA = ML.PCA(n=pcaFeature)
             else: 
-                PCA = ' '
+                PCA = ''
             
             if sys.argv[3] == 'rbf':
                 modelFile = SAVE + Descriptor + RBF + MODEL + SAV
@@ -219,9 +235,11 @@ if __name__ == "__main__":
             print "-----------------Save The Model---------------"
             pickle.dump(classifier, open(modelFile, 'wb'))
             pickle.dump(standardScaler, open(scalerFile, 'wb'))
-            pickle.dump(PCA, open(pcaFile, 'wb'))
+            if usePCA:
+                pickle.dump(PCA, open(pcaFile, 'wb'))
 
             print "-----------------Train The Model--------------"
+            time.sleep(1)
             detect = ObjectDetection(classifier, standardScaler, PCA)
             detect.run(IMG_URL)
             #train(classifier, standardScaler, std=1)
@@ -233,7 +251,7 @@ if __name__ == "__main__":
                 pcaFeature = 550
             if sys.argv[2] == '-l':
                 Descriptor = "LBP"
-                
+                pcaFeature = 550                
             if sys.argv[3] == 'rbf':
                 modelFile = SAVE + Descriptor + RBF + MODEL + SAV
                 scalerFile = SAVE + Descriptor + RBF + SCALER + SAV
@@ -246,10 +264,13 @@ if __name__ == "__main__":
                 modelFile = SAVE + Descriptor + LINEAR + MODEL + SAV
                 scalerFile = SAVE + Descriptor + LINEAR + SCALER + SAV
                 pcaFile = SAVE + Descriptor + LINEAR + PCA_URL + SAV
+            print modelFile
             classifier = pickle.load(open(modelFile, 'rb'))
             standardScaler = pickle.load(open(scalerFile, 'rb'))
-            PCA = pickle.load(open(pcaFile, 'rb'))
-
+            if usePCA:
+                PCA = pickle.load(open(pcaFile, 'rb'))
+            else:
+                PCA = ''
             detect = ObjectDetection(classifier, standardScaler, PCA)
             detect.run(IMG_URL)
             #train(classifier, standardScaler, std=1)

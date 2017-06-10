@@ -147,7 +147,7 @@ class F2D:
         # Save plot of Histogram
         X = np.delete(lista, (0), axis=0)
         np.savetxt(self.url + self.folder + self.folderName[:-1] + CSV,
-                   X, delimiter=',', fmt="%f")
+                   X, delimiter=',', fmt=self.fmt)
 
 
 from skimage.feature import local_binary_pattern
