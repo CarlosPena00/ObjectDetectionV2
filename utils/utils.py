@@ -41,6 +41,10 @@ class Utils:
         if descriptor == "LBP":
             csvFiles = LBP_URL
             numberOfFeatures = 5776
+        if descriptor == "HOGLBP":
+            hog = self.mergeCSV(positive, "HOG", usePCA)
+            lbp = self.mergeCSV(positive, "LBP", usePCA)
+            return np.hstack((hog,lbp))
             
         if positive is True:
             csvFiles += POSITIVE
@@ -54,8 +58,8 @@ class Utils:
         for folder in dataList:
             print "---- Start To Get Folder " + csvFiles + folder[0] + " ----"
             dataset = pd.read_csv(csvFiles + folder[0] + CSV, dtype="float32")
-            #dataset2 = pd.read_csv(LBP_URL + negPos + folder[0] + CSV, dtype="float32")
             xNew = dataset.iloc[:, :].values
+            print xList.shape, xNew.shape
             xList = np.vstack((xList, xNew))
         xList = np.delete(xList, (0), axis=0)
         return xList
