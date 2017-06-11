@@ -50,8 +50,7 @@ class ObjectDetection:
     def __init__(self, classifier, stdScaler, hogPCA='', lbpPCA=''):
         self.classifier = classifier
         self.stdScaler = stdScaler
-        if usePCA:
-        #if type(hogPCA) != str and type(lbpPCA) != str :
+        if type(hogPCA) != str and type(lbpPCA) != str :
             self.usePCA = True
             self.hogPCA = hogPCA
             self.lbpPCA = lbpPCA
@@ -101,8 +100,7 @@ class ObjectDetection:
                                 roi = cv2.resize(roi, (IMSIZE, IMSIZE))
                                 rows, cols = roi.shape[0], roi.shape[1]    
 
-                            features = self.__getHog(roi)
-                            if self.classifier.predict(features):
+                            if self.__predict(roi):
                                 self.recs_aux = np.array([xMin * iterator, yMin * iterator, xMax * iterator, yMax * iterator]) 
                                 self.rects.append(self.recs_aux)
             self.src = cv2.pyrDown(self.src)
@@ -118,14 +116,14 @@ class ObjectDetection:
         cv2.imwrite( RESULT +"LBP_" + self.url , self.srcPrint)
 
 
-    def __getFeatures(self,src):
+    def __predict(self,src):
         if self.descriptor == 'HOG':
-            return self.__getHog(src)
+            feature = self.__getHog(src)
         if self.descriptor == 'LBP':
-            return self.__getLbp(src)
+            feature = self.__getLbp(src)
         if self.descriptor =='HOGLBP':
-            return self.__getHogLbp(src)
-        
+            feature = self.__getHogLbp(src)
+        return self.classifier.predict(feature)
         
     def __getHog(self, src):
         histG = self.HOG.getOpenCV(src)
@@ -189,6 +187,7 @@ if __name__ == "__main__":
                 Descriptor = "LBP"
             if sys.argv[2] == '-hl':
                 Descriptor = "HOGLBP"
+                pcaFeature = 1100
                 
             print "------Getting Negative Samples from File------"
             XN = Ut.mergeCSV(positive=False, descriptor=Descriptor)
